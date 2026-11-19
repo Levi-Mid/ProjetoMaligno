@@ -292,6 +292,61 @@ public class Turismo implements Cloneable {
         }
         return ret + "Embarque de volta ao Brasil em " + nome(rota[0]) + ": " + chegada.format(f);
     }
+        public String rotaComLimite(String inicio, int kmMaximo) throws Exception {
+        if (kmMaximo <= 0)
+            throw new Exception("Distância máxima inválida");
+        calcularDistancias();
+
+        int n = this.mapa.getQtd();
+        int ini = indice(inicio);
+
+        int[] rota = new int[n];          
+        boolean[] naRota = new boolean[n];
+        rota[0] = ini;
+        naRota[ini] = true;
+        int tam = 1, total = 0;
+
+        // a cada passo coloca na rota a cidade que menos
+        // aumenta a distância total, enquanto o total couber no limite
+        for (;;) {
+            int melhorCidade = -1, melhorPos = -1, menorAumento = INFINITO;
+
+            for (int c = 0; c < n; c++) {
+                if (naRota[c] || this.dist[ini][c] >= INFINITO)
+                    continue;
+                for (int p = 0; p < tam; p++) {
+                    int a = rota[p], b = rota[(p + 1) % tam];
+                    int aumento = this.dist[a][c] + this.dist[c][b] - this.dist[a][b];
+                    if (aumento < menorAumento) {
+                        menorAumento = aumento;
+                        melhorCidade = c;
+                        melhorPos = p;
+                    }
+                }
+            }
+
+            if (melhorCidade == -1 || total + menorAumento > kmMaximo)
+                break;
+
+            
+            for (int i = tam; i > melhorPos + 1; i--)
+                rota[i] = rota[i - 1];
+            rota[melhorPos + 1] = melhorCidade;
+            naRota[melhorCidade] = true;
+            tam++;
+            total += menorAumento;
+        }
+
+        if (tam == 1)
+            throw new Exception("Nenhuma rota de ida e volta a partir de " + inicio + " cabe em " + kmMaximo + " km");
+
+        int[] escolhida = new int[tam];
+        for (int i = 0; i < tam; i++)
+            escolhida[i] = rota[i];
+
+        return "Rota de ida e volta a partir de " + inicio + " (limite de " + kmMaximo + " km):\n"
+                + trechos(expandir(escolhida, true));
+    }
 
     @Override
     public String toString() {
